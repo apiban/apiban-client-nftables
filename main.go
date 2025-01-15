@@ -86,7 +86,10 @@ func main() {
 
 	// no log error
 	log.Print("** Started APIBAN NFT CLIENT")
-	log.Print("** Licensed under GPLv2. See LICENSE for details.")
+	log.Print("** Copyright (C) 2025 Fred Posner / The Palner Group, Inc.")
+	log.Print("** This program comes with ABSOLUTELY NO WARRANTY;")
+	log.Print("** This is free software, and you are welcome to redistribute it under certain conditions")
+	log.Print("** Licensed under GPLv3. See https://github.com/apiban/apiban-client-nftables/blob/main/LICENSE for details.")
 	now := time.Now()
 
 	// Open our config file
