@@ -17,7 +17,7 @@ nftables is something many of us do not have familiarity with when compared to i
 This client will add active IPs to a nftable set.
 
 > [!NOTE]
-> If there is no found set, the client will look for an input chain and an output chain; making a set in the related table and then adding a rule to the input chain (blocking from the source ip) and the outbound chain (blocking to the destination ip).
+> If there is no found set, the client will look for an input chain and an output chain; making a set in the related table. The client will then attempt to add a rule to both the input chain (blocking from the source ip) and the outbound chain (blocking to the destination ip).
 
 You can have this set wherever you like... just let the client know the `setname` in `config.json`. A set named **APIBAN** is what we use here, so in the config this looks like:
 
@@ -41,6 +41,33 @@ nft add rule inet filter output ip daddr != @APIBAN accept
 ```
 
 (blocking inbound and outbound traffic)
+
+#### Example Ruleset (with example IPs)
+
+```
+# nft list ruleset
+table inet filter {
+	set APIBAN {
+		type ipv4_addr
+		elements = { 192.168.0.1, 192.168.0.2,
+			     192.168.0.1, ...}
+	}
+
+	chain input {
+		type filter hook input priority filter; policy accept;
+		ip saddr @APIBAN drop
+	}
+
+	chain forward {
+		type filter hook forward priority filter; policy accept;
+	}
+
+	chain output {
+		type filter hook output priority filter; policy accept;
+		ip daddr != @APIBAN accept
+	}
+}
+```
 
 ### Using the client
 
