@@ -86,8 +86,8 @@ cd /usr/local/bin/apiban
 wget https://github.com/apiban/apiban-client-nftables/raw/refs/heads/main/apiban-client-nftables  
 wget https://github.com/apiban/apiban-client-nftables/raw/refs/heads/main/config.json
 vi config.json
-chmod +x /usr/local/bin/apiban/apiban-iptables-client
-/usr/local/bin/apiban/apiban-iptables-client
+chmod +x /usr/local/bin/apiban/apiban-client-nftables
+/usr/local/bin/apiban/apiban-client-nftables
 ```
 
 ## More Info
