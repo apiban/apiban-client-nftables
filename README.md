@@ -8,6 +8,17 @@
 
 This software, _if you can even call it that_, has limited testing, running on only the systems of the developers. We encourage testing and gladly accept contributions, issues, and comments.
 
+## Contents
+
+- [Using apiban-client-nftables](#using-apiban-client-nftables)
+  - [Concept/Background](#conceptbackground)
+    - [example ruleset](#example-ruleset)
+  - [Using the client](#using-the-client)
+    - [Example Install](#example-install)
+  - [Log Rotation](#log-rotation)
+  - [Crontab](#crontab)
+- [More Info](#more-info)
+
 ## Using apiban-client-nftables
 
 ### Concept/Background
@@ -42,7 +53,7 @@ nft add rule inet filter output ip daddr != @APIBAN accept
 
 (blocking inbound and outbound traffic)
 
-#### Example Ruleset (with example IPs)
+#### Example Ruleset
 
 ```
 # nft list ruleset
@@ -88,6 +99,29 @@ wget https://github.com/apiban/apiban-client-nftables/raw/refs/heads/main/config
 vi config.json
 chmod +x /usr/local/bin/apiban/apiban-client-nftables
 /usr/local/bin/apiban/apiban-client-nftables
+```
+
+### Log Rotation
+
+```
+cat > /etc/logrotate.d/apiban-client-nftables << EOF
+/var/log/apiban-nft-client.log {
+        daily
+        copytruncate
+        rotate 7
+        compress
+}
+EOF
+```
+
+### Crontab
+
+Example crontab running every 4 min...
+
+```
+# update apiban nftables
+PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
+*/4 * * * * /usr/local/bin/apiban/apiban-client-nftables >/dev/null 2>&1
 ```
 
 ## More Info
