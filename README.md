@@ -6,7 +6,7 @@
 
 ## Beta
 
-This software, if you can call it that, has limited testing, running on only the systems of the developers. We encourage testing and gladly accept contributions, issues, and comments.
+This software, _if you can even call it that_, has limited testing, running on only the systems of the developers. We encourage testing and gladly accept contributions, issues, and comments.
 
 ## Using apiban-client-nftables
 
@@ -15,6 +15,8 @@ This software, if you can call it that, has limited testing, running on only the
 nftables is something many of us do not have familiarity with when compared to iptables (the "main" [apiban client](https://github.com/apiban/apiban-client-nftables) is iptables based). With the current SIP/HTTP dataset having (sometimes) several thousand active IP addresses, the community has asked for a simple way to use nftables with APIBAN.
 
 This client will add active IPs to a nftable set.
+
+**NOTE**: If there is no found set, the client will look for an input chain and an output chain; making a set in the related table and then adding a rule to the input chain (blocking from the source ip) and the outbound chain (blocking to the destination ip). **End NOTE**
 
 You can have this set wherever you like... just let the client know the `setname` in `config.json`. A set named **APIBAN** is what we use here, so in the config this looks like:
 
@@ -33,8 +35,8 @@ This assumes your table is called `filter` (which is the default installed). Reg
 Then, add your set to the chain of your choosing, such as:
 
 ```
-nft add rule ip filter input ip saddr @APIBAN drop
-nft add rule ip filter output ip daddr != @APIBAN accept
+nft add rule inet filter input ip saddr @APIBAN drop
+nft add rule inet filter output ip daddr != @APIBAN accept
 ```
 
 (blocking inbound and outbound traffic)
