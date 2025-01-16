@@ -16,7 +16,8 @@ nftables is something many of us do not have familiarity with when compared to i
 
 This client will add active IPs to a nftable set.
 
-**NOTE**: If there is no found set, the client will look for an input chain and an output chain; making a set in the related table and then adding a rule to the input chain (blocking from the source ip) and the outbound chain (blocking to the destination ip). **End NOTE**
+> [!NOTE]
+> If there is no found set, the client will look for an input chain and an output chain; making a set in the related table and then adding a rule to the input chain (blocking from the source ip) and the outbound chain (blocking to the destination ip).
 
 You can have this set wherever you like... just let the client know the `setname` in `config.json`. A set named **APIBAN** is what we use here, so in the config this looks like:
 
