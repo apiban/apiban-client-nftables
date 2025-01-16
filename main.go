@@ -98,7 +98,7 @@ func main() {
 	log.Print("** Copyright (C) 2025 Fred Posner / The Palner Group, Inc.")
 	log.Print("** This program comes with ABSOLUTELY NO WARRANTY;")
 	log.Print("** This is free software, and you are welcome to redistribute it under certain conditions")
-	log.Print("** Licensed under GPLv3. See https://github.com/apiban/apiban-client-nftables/blob/main/LICENSE for details.")
+	log.Print("** See https://github.com/apiban/apiban-client-nftables/blob/main/LICENSE for details.")
 	now := time.Now()
 
 	// Open our config file
@@ -113,7 +113,20 @@ func main() {
 	if err != nil {
 		log.Println("[x] Cannot verify nftables set:", apiconfig.SETNAME)
 		log.Println("[x] error:", err)
-		os.Exit(2)
+		log.Println("[.] trying to create set")
+		err := addSet(*apiconfig)
+		if err != nil {
+			os.Exit(2)
+		}
+
+		currentSet, err = nftlib.NftListSet(apiconfig.SETNAME)
+		if err != nil {
+			log.Println("[x]", err.Error())
+			log.Println("[x] Still cannot verify nftables set:", apiconfig.SETNAME)
+			os.Exit(2)
+		}
+
+		log.Println("[+]", currentSet.Set, "verified")
 	}
 
 	log.Println("[.]", apiconfig.SETNAME, "exists. Currently has", len(currentSet.Elements), "elements.")
@@ -268,4 +281,60 @@ func (cfg *ApibanConfig) Update() error {
 	enc := json.NewEncoder(f)
 	enc.SetIndent("", "  ")
 	return enc.Encode(cfg)
+}
+
+func addSet(cfg ApibanConfig) error {
+	log.Println("** Attempting to add set and rules")
+	log.Println("[-] finding input chains")
+	inputChains, err := nftlib.NftGetInputChains()
+	if err != nil {
+		log.Println("[x] error finding input chain:", err.Error())
+		return errors.New("error finding an input chain")
+	}
+
+	log.Println("[.] found", inputChains)
+	chainDetails, err := nftlib.NftGetChainDetails(inputChains[0])
+	if err != nil {
+		log.Println("[x] error finding input chain details:", err.Error())
+		return errors.New("error getting input chain details")
+	}
+
+	log.Println("[.] creating set", cfg.SETNAME, "in", chainDetails.Table, chainDetails.Chain)
+	err = nftlib.NftAddSet(chainDetails, cfg.SETNAME)
+	if err != nil {
+		log.Println("[x] unable to create set:", err.Error())
+		return errors.New("unable to create set")
+	}
+
+	log.Println("[.] creating input rule", cfg.SETNAME, "in", chainDetails.Table, chainDetails.Chain)
+	err = nftlib.NftAddSetRuleInput(chainDetails, cfg.SETNAME)
+	if err != nil {
+		log.Println("[*] unable to create input rule:", err.Error())
+		log.Println("[*] input rule failed. Set created though... continuing.")
+		log.Println("[*] *** PLEASE MANUALLY CREATE A RULE FOR THE", cfg.SETNAME, "SET")
+	}
+
+	log.Println("[-] finding output chains")
+	outputchains, err := nftlib.NftGetOutputChains()
+	if err != nil {
+		log.Println("[x] error finding output chain:", err.Error())
+		return nil
+	}
+
+	log.Println("[.] found", outputchains)
+	chainDetails, err = nftlib.NftGetChainDetails(outputchains[0])
+	if err != nil {
+		log.Println("[x] error finding output chain details:", err.Error())
+		return nil
+	}
+
+	log.Println("[.] creating output rule", cfg.SETNAME, "in", chainDetails.Table, chainDetails.Chain)
+	err = nftlib.NftAddSetRuleOutput(chainDetails, cfg.SETNAME)
+	if err != nil {
+		log.Println("[*] unable to create output rule:", err.Error())
+		log.Println("[*] output rule failed. Set created though... continuing.")
+		log.Println("[*] *** PLEASE MANUALLY CREATE A RULE FOR THE", cfg.SETNAME, "SET")
+	}
+
+	return nil
 }
