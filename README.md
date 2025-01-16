@@ -2,7 +2,8 @@
 
 [apiban](https://www.apiban.org) nftables go client
 
-**APIBAN is made possible by the generosity of our [sponsors](https://apiban.org/doc.html#sponsors).**
+> [!IMPORTANT]
+> APIBAN is made possible by the generosity of our [sponsors](https://apiban.org/doc.html#sponsors).
 
 ## Beta
 
