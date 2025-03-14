@@ -4,7 +4,7 @@ go 1.23.4
 
 require (
 	github.com/apiban/golib v1.0.1
-	github.com/apiban/nftlib v0.3.0
+	github.com/apiban/nftlib v0.4.0
 )
 
 require (

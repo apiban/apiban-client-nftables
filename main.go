@@ -78,6 +78,7 @@ func init() {
 
 func main() {
 	flag.Parse()
+	nonflagargs := flag.Args()
 	defer os.Exit(0)
 
 	// open log
@@ -132,9 +133,8 @@ func main() {
 	log.Println("[.]", apiconfig.SETNAME, "exists. Currently has", len(currentSet.Elements), "elements.")
 
 	// allow cli of FULL to reset LKID to 100
-	if len(os.Args) > 1 {
-		arg1 := os.Args[1]
-		if arg1 == "FULL" {
+	if len(nonflagargs) > 0 {
+		if nonflagargs[0] == "FULL" {
 			log.Print("[.] CLI of FULL received, resetting LKID")
 			apiconfig.LKID = "100"
 		}
@@ -216,20 +216,21 @@ func LoadConfig(now time.Time) (*ApibanConfig, error) {
 	// If we have a user-specified configuration file, use it preferentially
 	if configFileLocation != "" {
 		fileLocations = append(fileLocations, configFileLocation)
-	}
+		log.Println("[.] received", configFileLocation, "for config")
+	} else {
+		// If we can determine the user configuration directory, try there
+		configDir, err := os.UserConfigDir()
+		if err == nil {
+			fileLocations = append(fileLocations, fmt.Sprintf("%s/apiban/config.json", configDir))
+		}
 
-	// If we can determine the user configuration directory, try there
-	configDir, err := os.UserConfigDir()
-	if err == nil {
-		fileLocations = append(fileLocations, fmt.Sprintf("%s/apiban/config.json", configDir))
+		// Add standard static locations
+		fileLocations = append(fileLocations,
+			"/etc/apiban/config.json",
+			"config.json",
+			"/usr/local/bin/apiban/config.json",
+		)
 	}
-
-	// Add standard static locations
-	fileLocations = append(fileLocations,
-		"/etc/apiban/config.json",
-		"config.json",
-		"/usr/local/bin/apiban/config.json",
-	)
 
 	for _, loc := range fileLocations {
 		f, err := os.Open(loc)
@@ -264,6 +265,7 @@ func LoadConfig(now time.Time) (*ApibanConfig, error) {
 			cfg.FLUSH = strconv.FormatInt(flushnow, 10)
 		}
 
+		log.Println("[.] using", cfg.sourceFile, "for config")
 		return cfg, nil
 	}
 
