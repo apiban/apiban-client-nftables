@@ -125,6 +125,22 @@ PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
 */4 * * * * /usr/local/bin/apiban/apiban-client-nftables >/dev/null 2>&1
 ```
 
+### FLUSHAFTER
+
+**New Feature**: added 2025-06-26
+
+In the `config.json` is a new item:
+
+```json
+    "flushafter": 604800,
+```
+
+This is the period, in seconds, to keep addresses blocked. The default period, 604800, is one (1) week. If you wanted to retain addresses for 4 weeks, you would set this to `2419200`.
+
+You can manually flush addresses and replace with the currently active address by running:
+
+`/usr/local/bin/apiban/apiban-client-nftables FULL`
+
 ## More Info
 
 * Sets: <https://wiki.nftables.org/wiki-nftables/index.php/Sets>
