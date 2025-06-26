@@ -63,6 +63,7 @@ type ApibanConfig struct {
 	FLUSH      string `json:"flush"`
 	DATASET    string `json:"dataset"`
 	SETNAME    string `json:"setname"`
+	FLUSHAFTER int64  `json:"flushafter"`
 	sourceFile string
 }
 
@@ -143,7 +144,7 @@ func main() {
 	// check if set elements need to be flushed (greater than 7 days)
 	flushtime, _ := strconv.ParseInt(apiconfig.FLUSH, 10, 64)
 	flushdiff := now.Unix() - flushtime
-	if flushdiff >= 604800 {
+	if flushdiff >= apiconfig.FLUSHAFTER {
 		err := nftlib.NftFlushSet(currentSet)
 		if err != nil {
 			log.Print("[.] flushing nftables set failed. ", err.Error())
@@ -174,7 +175,7 @@ func main() {
 				log.Fatalln(err)
 			}
 
-			currentSet, err = nftlib.NftListSet(apiconfig.SETNAME)
+			currentSet, _ = nftlib.NftListSet(apiconfig.SETNAME)
 			log.Println("[+]", apiconfig.SETNAME, "now has", len(currentSet.Elements), "elements.")
 			os.Exit(0)
 		}
@@ -246,7 +247,7 @@ func LoadConfig(now time.Time) (*ApibanConfig, error) {
 
 		// Store the location of the config file so that we can update it later
 		cfg.sourceFile = loc
-		cfg.VERSION = "nft1.0"
+		cfg.VERSION = "nft1.1"
 		if cfg.APIKEY == "" || cfg.APIKEY == "MY API KEY" {
 			log.Println("[.] \"" + cfg.APIKEY + "\" is not a valid APIBAN key. Please go to apiban.org and get a valid API key.")
 			log.Fatalln("Invalid APIKEY. Exiting.")
@@ -263,6 +264,12 @@ func LoadConfig(now time.Time) (*ApibanConfig, error) {
 			log.Print("[.] Resetting FLUSH")
 			flushnow := now.Unix()
 			cfg.FLUSH = strconv.FormatInt(flushnow, 10)
+		}
+
+		// if no FLUSHAFTER, use a week
+		if cfg.FLUSHAFTER < 1 {
+			log.Print("[.] Resetting FLUSHAFTER to 1 week")
+			cfg.FLUSHAFTER = 604800
 		}
 
 		log.Println("[.] using", cfg.sourceFile, "for config")

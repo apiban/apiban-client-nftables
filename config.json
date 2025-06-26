@@ -3,6 +3,7 @@
     "lkid": "100",
     "version": "nft1.0",
     "flush": "100",
+    "flushafter": 604800,
     "dataset": "all",
     "setname": "APIBAN"
   }
