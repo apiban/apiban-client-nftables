@@ -18,6 +18,10 @@ This software, _if you can even call it that_, has limited testing, running on o
     - [Example Install](#example-install)
   - [Log Rotation](#log-rotation)
   - [Crontab](#crontab)
+  - [FLUSHAFTER](#flushafter)
+  - [YaML](#yaml)
+  - [Log](#log)
+  - [TLS Verify](#tls-verify)
 - [More Info](#more-info)
 
 ## Using apiban-client-nftables
@@ -140,6 +144,42 @@ This is the period, in seconds, to keep addresses blocked. The default period, 6
 You can manually flush addresses and replace with the currently active address by running:
 
 `/usr/local/bin/apiban/apiban-client-nftables FULL`
+
+### YAML
+
+**New Feature**: added 2025-11-03
+
+apiban-client-nftables supports yaml instead of json, for those who want one over the other for whatever reason.
+
+The client will automatically convert a json config to yaml (and vice versa) if the `yaml` flag is sent to the executable.
+
+Example:
+
+`apiban-client-nftables -yaml=true`
+
+or in crontab:
+
+```
+# update apiban nftables
+PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
+*/4 * * * * /usr/local/bin/apiban/apiban-client-nftables -yaml=true >/dev/null 2>&1
+```
+
+### Log
+
+The default log location is `/var/log/apiban-nft-client.log`. This can be updated with the `log` flag:
+
+Example:
+
+`apiban-client-nftables -yaml=true -log=/opt/loggity-log.txt`
+
+### TLS verify
+
+If for whatever reason you want to skip TLS verification, there's a flag for it: `verify`. (defaults to true)
+
+Example:
+
+`apiban-client-nftables -yaml=true -verify=false`
 
 ## More Info
 
