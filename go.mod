@@ -1,10 +1,11 @@
 module apiban-client-nftables
 
-go 1.24.3
+go 1.25.3
 
 require (
 	github.com/apiban/golib v1.0.1
 	github.com/apiban/nftlib v0.4.0
+	github.com/goccy/go-yaml v1.18.0
 )
 
 require (

@@ -24,9 +24,9 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
 Example build commands:
-GOOS=linux GOARCH=amd64 go build -o apiban-client-nftables
-GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -o apiban-client-nftables
-GOOS=linux GOARCH=arm GOARM=7 go build -o apiban-client-nftables-pi
+env GOOS=linux GOARCH=amd64 go build -o apiban-client-nftables
+env GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -o apiban-client-nftables
+env GOOS=linux GOARCH=arm GOARM=7 go build -o apiban-client-nftables-pi
 
 */
 
@@ -43,16 +43,19 @@ import (
 	"os"
 	"runtime"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/apiban/golib"
 	"github.com/apiban/nftlib"
+	"github.com/goccy/go-yaml"
 )
 
 var (
 	configFileLocation string
 	logFile            string
 	skipVerify         bool
+	useYaml            bool
 )
 
 // ApibanConfig is the structure for the JSON config file
@@ -71,6 +74,7 @@ func init() {
 	flag.StringVar(&configFileLocation, "config", "", "location of configuration file")
 	flag.StringVar(&logFile, "log", "/var/log/apiban-nft-client.log", "location of log file or - for stdout")
 	flag.BoolVar(&skipVerify, "verify", true, "set to false to skip verify of tls cert")
+	flag.BoolVar(&useYaml, "yaml", false, "use yaml - default is json")
 
 	if !skipVerify {
 		http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
@@ -213,6 +217,15 @@ func main() {
 // LoadConfig attempts to load the APIBAN configuration file from various locations
 func LoadConfig(now time.Time) (*ApibanConfig, error) {
 	var fileLocations []string
+	var fileName string
+	var altFileName string
+	if useYaml {
+		fileName = "config.yaml"
+		altFileName = "config.json"
+	} else {
+		fileName = "config.json"
+		altFileName = "config.yaml"
+	}
 
 	// If we have a user-specified configuration file, use it preferentially
 	if configFileLocation != "" {
@@ -227,9 +240,12 @@ func LoadConfig(now time.Time) (*ApibanConfig, error) {
 
 		// Add standard static locations
 		fileLocations = append(fileLocations,
-			"/etc/apiban/config.json",
-			"config.json",
-			"/usr/local/bin/apiban/config.json",
+			"/etc/apiban/"+fileName,
+			fileName,
+			"/usr/local/bin/apiban/"+fileName,
+			"/etc/apiban/"+altFileName,
+			altFileName,
+			"/usr/local/bin/apiban/"+altFileName,
 		)
 	}
 
@@ -240,14 +256,29 @@ func LoadConfig(now time.Time) (*ApibanConfig, error) {
 		}
 
 		defer f.Close()
+		fileExt := loc[len(loc)-4:]
 		cfg := new(ApibanConfig)
-		if err := json.NewDecoder(f).Decode(cfg); err != nil {
-			return nil, fmt.Errorf("failed to read configuration from %s: %w", loc, err)
+		if fileExt == "yaml" {
+			if err := yaml.NewDecoder(f).Decode(cfg); err != nil {
+				log.Println("-> [x] [LoadConfig] error reading:", loc, err)
+				return nil, fmt.Errorf("[LoadConfig] failed to read configuration from %s: %w", loc, err)
+			}
+		} else {
+			if err := json.NewDecoder(f).Decode(cfg); err != nil {
+				return nil, fmt.Errorf("failed to read configuration from %s: %w", loc, err)
+			}
 		}
 
 		// Store the location of the config file so that we can update it later
+		if useYaml {
+			if fileExt == "json" {
+				loc = strings.Replace(loc, ".json", ".yaml", -1)
+				log.Println("[LoadConfig] will replace json file with", loc)
+			}
+		}
+
 		cfg.sourceFile = loc
-		cfg.VERSION = "nft1.1"
+		cfg.VERSION = "nft1.2"
 		if cfg.APIKEY == "" || cfg.APIKEY == "MY API KEY" {
 			log.Println("[.] \"" + cfg.APIKEY + "\" is not a valid APIBAN key. Please go to apiban.org and get a valid API key.")
 			log.Fatalln("Invalid APIKEY. Exiting.")
@@ -287,9 +318,15 @@ func (cfg *ApibanConfig) Update() error {
 	}
 	defer f.Close()
 
-	enc := json.NewEncoder(f)
-	enc.SetIndent("", "  ")
-	return enc.Encode(cfg)
+	if useYaml {
+		enc := yaml.NewEncoder(f, yaml.Indent(2))
+		enc.Encode(cfg)
+	} else {
+		enc := json.NewEncoder(f)
+		enc.SetIndent("", "  ")
+	}
+
+	return nil
 }
 
 func addSet(cfg ApibanConfig) error {
