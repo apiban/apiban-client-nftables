@@ -19,10 +19,13 @@ This software, _if you can even call it that_, has limited testing, running on o
   - [Log Rotation](#log-rotation)
   - [Crontab](#crontab)
   - [FLUSHAFTER](#flushafter)
+  - [UPTIME](#uptime)
   - [YaML](#yaml)
   - [Log](#log)
   - [TLS Verify](#tls-verify)
 - [More Info](#more-info)
+- [License](#license)
+- [Contributions](#contributions)
 
 ## Using apiban-client-nftables
 
@@ -145,6 +148,18 @@ You can manually flush addresses and replace with the currently active address b
 
 `/usr/local/bin/apiban/apiban-client-nftables FULL`
 
+### UPTIME
+
+**New Feature**: added 2026-03-18
+
+In the `config.json` is a new item:
+
+```json
+    "uptime": 600,
+```
+
+This is the period, in seconds, for which a FULL pull of blocked ip's is downloaded. This is useful for when the system is rebooted. If the system uptime is less than the setting, a full pull is conducted. The default value is 600 (5 minutes).
+
 ### YAML
 
 **New Feature**: added 2025-11-03
@@ -185,3 +200,16 @@ Example:
 
 * Sets: <https://wiki.nftables.org/wiki-nftables/index.php/Sets>
 * APIBAN: <https://www.apiban.org>
+
+## License
+
+`GPLv3`
+
+Copyright: Fred Posner ([Palner](https://www.palner.com/))
+
+## Contributions
+
+Contributions are welcome!
+
+Fork and do pull requests:
+<https://github.com/apiban/apiban-client-nftables>

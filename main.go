@@ -1,27 +1,7 @@
 /*
 apiban-client-nftables - add apiban.org data to a nftables set
-
-The MIT License (MIT)
-
-Copyright (c) 2025 Fred Posner
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+License: GPLv3
+Copyright (c) 2025,2026 Fred Posner
 
 Example build commands:
 env GOOS=linux GOARCH=amd64 go build -o apiban-client-nftables
@@ -67,6 +47,7 @@ type ApibanConfig struct {
 	DATASET    string `json:"dataset"`
 	SETNAME    string `json:"setname"`
 	FLUSHAFTER int64  `json:"flushafter"`
+	UPTIME     int64  `json:"uptime"`
 	sourceFile string
 }
 
@@ -101,10 +82,8 @@ func main() {
 
 	// no log error
 	log.Print("** Started APIBAN NFT CLIENT")
-	log.Print("** Copyright (C) 2025 Fred Posner / The Palner Group, Inc.")
-	log.Print("** This program comes with ABSOLUTELY NO WARRANTY;")
-	log.Print("** This is free software, and you are welcome to redistribute it under certain conditions")
-	log.Print("** See https://github.com/apiban/apiban-client-nftables/blob/main/LICENSE for details.")
+	log.Print("** Copyright (C) 2025,2026 Fred Posner / The Palner Group, Inc.")
+	log.Print("** License: GPLv3")
 	now := time.Now()
 
 	// Open our config file
@@ -141,6 +120,17 @@ func main() {
 	if len(nonflagargs) > 0 {
 		if nonflagargs[0] == "FULL" {
 			log.Print("[.] CLI of FULL received, resetting LKID")
+			apiconfig.LKID = "100"
+		}
+	}
+
+	// check uptime
+	upsec, err := nftlib.LinuxUptime()
+	if err != nil {
+		log.Print("[.] unable to check uptime")
+	} else {
+		if upsec < apiconfig.UPTIME {
+			log.Println("[.] uptime of", upsec, "is less than", apiconfig.UPTIME, " - resetting LKID")
 			apiconfig.LKID = "100"
 		}
 	}
@@ -279,7 +269,7 @@ func LoadConfig(now time.Time) (*ApibanConfig, error) {
 
 		cfg.sourceFile = loc
 		cfg.VERSION = "nft1.2"
-		if cfg.APIKEY == "" || cfg.APIKEY == "MY API KEY" {
+		if cfg.APIKEY == "" || cfg.APIKEY == "MY API KEY" || cfg.APIKEY == "MYAPIKEY" {
 			log.Println("[.] \"" + cfg.APIKEY + "\" is not a valid APIBAN key. Please go to apiban.org and get a valid API key.")
 			log.Fatalln("Invalid APIKEY. Exiting.")
 			runtime.Goexit()
@@ -301,6 +291,12 @@ func LoadConfig(now time.Time) (*ApibanConfig, error) {
 		if cfg.FLUSHAFTER < 1 {
 			log.Print("[.] Resetting FLUSHAFTER to 1 week")
 			cfg.FLUSHAFTER = 604800
+		}
+
+		// if no UPTIME, use 5 min
+		if cfg.UPTIME < 1 {
+			log.Print("[.] No UPTIME. Use 600")
+			cfg.UPTIME = 600
 		}
 
 		log.Println("[.] using", cfg.sourceFile, "for config")

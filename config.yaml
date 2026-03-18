@@ -1,0 +1,8 @@
+apikey: MYAPIKEY
+lkid: "100"
+version: nft1.2
+flush: "100"
+dataset: all
+setname: APIBAN
+uptime: 600
+flushafter: 604800

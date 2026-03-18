@@ -1,10 +1,11 @@
 {
     "apikey": "MY API KEY",
     "lkid": "100",
-    "version": "nft1.0",
+    "version": "nft1.2",
     "flush": "100",
     "flushafter": 604800,
     "dataset": "all",
+    "uptime": 600,
     "setname": "APIBAN"
   }
   
