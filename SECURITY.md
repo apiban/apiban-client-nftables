@@ -6,6 +6,7 @@ The most recent tagged version is supported.
 
 | Version | Supported          |
 | ------- | ------------------ |
+| 0.4.0   | :white_check_mark: |
 | 0.3.0   | :white_check_mark: |
 | 0.2.0   | :x:                |
 | < 0.2   | :x:                |
