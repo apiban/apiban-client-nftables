@@ -1,32 +1,12 @@
 /*
 apiban-client-nftables - add apiban.org data to a nftables set
-
-The MIT License (MIT)
-
-Copyright (c) 2025 Fred Posner
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+License: GPLv3
+Copyright (c) 2025,2026 Fred Posner
 
 Example build commands:
-GOOS=linux GOARCH=amd64 go build -o apiban-client-nftables
-GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -o apiban-client-nftables
-GOOS=linux GOARCH=arm GOARM=7 go build -o apiban-client-nftables-pi
+env GOOS=linux GOARCH=amd64 go build -o apiban-client-nftables
+env GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -o apiban-client-nftables
+env GOOS=linux GOARCH=arm GOARM=7 go build -o apiban-client-nftables-pi
 
 */
 
@@ -43,16 +23,20 @@ import (
 	"os"
 	"runtime"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/apiban/golib"
 	"github.com/apiban/nftlib"
+	"github.com/goccy/go-yaml"
 )
 
 var (
-	configFileLocation string
-	logFile            string
-	skipVerify         bool
+	configFileLocation string = ""
+	logFile            string = "/var/log/apiban-nft-client.log"
+	skipVerify         bool   = true
+	useCounter         bool   = false
+	useYaml            bool   = false
 )
 
 // ApibanConfig is the structure for the JSON config file
@@ -64,13 +48,16 @@ type ApibanConfig struct {
 	DATASET    string `json:"dataset"`
 	SETNAME    string `json:"setname"`
 	FLUSHAFTER int64  `json:"flushafter"`
+	UPTIME     int64  `json:"uptime"`
 	sourceFile string
 }
 
 func init() {
-	flag.StringVar(&configFileLocation, "config", "", "location of configuration file")
-	flag.StringVar(&logFile, "log", "/var/log/apiban-nft-client.log", "location of log file or - for stdout")
-	flag.BoolVar(&skipVerify, "verify", true, "set to false to skip verify of tls cert")
+	flag.StringVar(&configFileLocation, "config", configFileLocation, "location of configuration file")
+	flag.StringVar(&logFile, "log", logFile, "location of log file or - for stdout")
+	flag.BoolVar(&skipVerify, "verify", skipVerify, "set to false to skip verify of tls cert")
+	flag.BoolVar(&useCounter, "counter", useCounter, "use counter - default is false (no counter)")
+	flag.BoolVar(&useYaml, "yaml", useYaml, "use yaml - default is json")
 
 	if !skipVerify {
 		http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
@@ -97,10 +84,8 @@ func main() {
 
 	// no log error
 	log.Print("** Started APIBAN NFT CLIENT")
-	log.Print("** Copyright (C) 2025 Fred Posner / The Palner Group, Inc.")
-	log.Print("** This program comes with ABSOLUTELY NO WARRANTY;")
-	log.Print("** This is free software, and you are welcome to redistribute it under certain conditions")
-	log.Print("** See https://github.com/apiban/apiban-client-nftables/blob/main/LICENSE for details.")
+	log.Print("** Copyright (C) 2025,2026 Fred Posner / The Palner Group, Inc.")
+	log.Print("** License: GPLv3")
 	now := time.Now()
 
 	// Open our config file
@@ -137,6 +122,17 @@ func main() {
 	if len(nonflagargs) > 0 {
 		if nonflagargs[0] == "FULL" {
 			log.Print("[.] CLI of FULL received, resetting LKID")
+			apiconfig.LKID = "100"
+		}
+	}
+
+	// check uptime
+	upsec, err := nftlib.LinuxUptime()
+	if err != nil {
+		log.Print("[.] unable to check uptime")
+	} else {
+		if upsec < apiconfig.UPTIME {
+			log.Println("[.] uptime of", upsec, "is less than", apiconfig.UPTIME, " - resetting LKID")
 			apiconfig.LKID = "100"
 		}
 	}
@@ -213,6 +209,15 @@ func main() {
 // LoadConfig attempts to load the APIBAN configuration file from various locations
 func LoadConfig(now time.Time) (*ApibanConfig, error) {
 	var fileLocations []string
+	var fileName string
+	var altFileName string
+	if useYaml {
+		fileName = "config.yaml"
+		altFileName = "config.json"
+	} else {
+		fileName = "config.json"
+		altFileName = "config.yaml"
+	}
 
 	// If we have a user-specified configuration file, use it preferentially
 	if configFileLocation != "" {
@@ -227,9 +232,12 @@ func LoadConfig(now time.Time) (*ApibanConfig, error) {
 
 		// Add standard static locations
 		fileLocations = append(fileLocations,
-			"/etc/apiban/config.json",
-			"config.json",
-			"/usr/local/bin/apiban/config.json",
+			"/etc/apiban/"+fileName,
+			fileName,
+			"/usr/local/bin/apiban/"+fileName,
+			"/etc/apiban/"+altFileName,
+			altFileName,
+			"/usr/local/bin/apiban/"+altFileName,
 		)
 	}
 
@@ -240,15 +248,30 @@ func LoadConfig(now time.Time) (*ApibanConfig, error) {
 		}
 
 		defer f.Close()
+		fileExt := loc[len(loc)-4:]
 		cfg := new(ApibanConfig)
-		if err := json.NewDecoder(f).Decode(cfg); err != nil {
-			return nil, fmt.Errorf("failed to read configuration from %s: %w", loc, err)
+		if fileExt == "yaml" {
+			if err := yaml.NewDecoder(f).Decode(cfg); err != nil {
+				log.Println("-> [x] [LoadConfig] error reading:", loc, err)
+				return nil, fmt.Errorf("[LoadConfig] failed to read configuration from %s: %w", loc, err)
+			}
+		} else {
+			if err := json.NewDecoder(f).Decode(cfg); err != nil {
+				return nil, fmt.Errorf("failed to read configuration from %s: %w", loc, err)
+			}
 		}
 
 		// Store the location of the config file so that we can update it later
+		if useYaml {
+			if fileExt == "json" {
+				loc = strings.Replace(loc, ".json", ".yaml", -1)
+				log.Println("[LoadConfig] will replace json file with", loc)
+			}
+		}
+
 		cfg.sourceFile = loc
-		cfg.VERSION = "nft1.1"
-		if cfg.APIKEY == "" || cfg.APIKEY == "MY API KEY" {
+		cfg.VERSION = "nft1.2"
+		if cfg.APIKEY == "" || cfg.APIKEY == "MY API KEY" || cfg.APIKEY == "MYAPIKEY" {
 			log.Println("[.] \"" + cfg.APIKEY + "\" is not a valid APIBAN key. Please go to apiban.org and get a valid API key.")
 			log.Fatalln("Invalid APIKEY. Exiting.")
 			runtime.Goexit()
@@ -272,6 +295,12 @@ func LoadConfig(now time.Time) (*ApibanConfig, error) {
 			cfg.FLUSHAFTER = 604800
 		}
 
+		// if no UPTIME, use 5 min
+		if cfg.UPTIME < 1 {
+			log.Print("[.] No UPTIME. Use 600")
+			cfg.UPTIME = 600
+		}
+
 		log.Println("[.] using", cfg.sourceFile, "for config")
 		return cfg, nil
 	}
@@ -287,9 +316,15 @@ func (cfg *ApibanConfig) Update() error {
 	}
 	defer f.Close()
 
-	enc := json.NewEncoder(f)
-	enc.SetIndent("", "  ")
-	return enc.Encode(cfg)
+	if useYaml {
+		enc := yaml.NewEncoder(f, yaml.Indent(2))
+		enc.Encode(cfg)
+	} else {
+		enc := json.NewEncoder(f)
+		enc.SetIndent("", "  ")
+	}
+
+	return nil
 }
 
 func addSet(cfg ApibanConfig) error {
@@ -309,7 +344,12 @@ func addSet(cfg ApibanConfig) error {
 	}
 
 	log.Println("[.] creating set", cfg.SETNAME, "in", chainDetails.Table, chainDetails.Chain)
-	err = nftlib.NftAddSet(chainDetails, cfg.SETNAME)
+	if useCounter {
+		err = nftlib.NftAddSetCounter(chainDetails, cfg.SETNAME)
+	} else {
+		err = nftlib.NftAddSet(chainDetails, cfg.SETNAME)
+	}
+
 	if err != nil {
 		log.Println("[x] unable to create set:", err.Error())
 		return errors.New("unable to create set")

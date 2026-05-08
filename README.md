@@ -18,7 +18,15 @@ This software, _if you can even call it that_, has limited testing, running on o
     - [Example Install](#example-install)
   - [Log Rotation](#log-rotation)
   - [Crontab](#crontab)
+  - [FLUSHAFTER](#flushafter)
+  - [UPTIME](#uptime)
+  - [YaML](#yaml)
+  - [Log](#log)
+  - [TLS Verify](#tls-verify)
+  - [Counters](#counters)
 - [More Info](#more-info)
+- [License](#license)
+- [Contributions](#contributions)
 
 ## Using apiban-client-nftables
 
@@ -141,7 +149,86 @@ You can manually flush addresses and replace with the currently active address b
 
 `/usr/local/bin/apiban/apiban-client-nftables FULL`
 
+### UPTIME
+
+**New Feature**: added 2026-03-18
+
+In the `config.json` is a new item:
+
+```json
+    "uptime": 600,
+```
+
+This is the period, in seconds, for which a FULL pull of blocked ip's is downloaded. This is useful for when the system is rebooted. If the system uptime is less than the setting, a full pull is conducted. The default value is 600 (5 minutes).
+
+### YAML
+
+**New Feature**: added 2025-11-03
+
+apiban-client-nftables supports yaml instead of json, for those who want one over the other for whatever reason.
+
+The client will automatically convert a json config to yaml (and vice versa) if the `yaml` flag is sent to the executable.
+
+Example:
+
+`apiban-client-nftables -yaml=true`
+
+or in crontab:
+
+```
+# update apiban nftables
+PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
+*/4 * * * * /usr/local/bin/apiban/apiban-client-nftables -yaml=true >/dev/null 2>&1
+```
+
+### Log
+
+The default log location is `/var/log/apiban-nft-client.log`. This can be updated with the `log` flag:
+
+Example:
+
+`apiban-client-nftables -yaml=true -log=/opt/loggity-log.txt`
+
+### TLS verify
+
+If for whatever reason you want to skip TLS verification, there's a flag for it: `verify`. (defaults to true)
+
+Example:
+
+`apiban-client-nftables -yaml=true -verify=false`
+
+### COUNTERS
+
+**New Feature**: added 2026-05-08 (requested by @tsearle)
+
+apiban-client-nftables can now create the APIBAN nft set with counters enabled.
+
+Example:
+
+`apiban-client-nftables -counter=true`
+
+or in crontab:
+
+```
+# update apiban nftables
+PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
+*/4 * * * * /usr/local/bin/apiban/apiban-client-nftables -yaml=true -counter=true >/dev/null 2>&1
+```
+
 ## More Info
 
 * Sets: <https://wiki.nftables.org/wiki-nftables/index.php/Sets>
 * APIBAN: <https://www.apiban.org>
+
+## License
+
+`GPLv3`
+
+Copyright: Fred Posner ([Palner](https://www.palner.com/))
+
+## Contributions
+
+Contributions are welcome!
+
+Fork and do pull requests:
+<https://github.com/apiban/apiban-client-nftables>
