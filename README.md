@@ -23,6 +23,7 @@ This software, _if you can even call it that_, has limited testing, running on o
   - [YaML](#yaml)
   - [Log](#log)
   - [TLS Verify](#tls-verify)
+  - [Counters](#counters)
 - [More Info](#more-info)
 - [License](#license)
 - [Contributions](#contributions)
@@ -195,6 +196,24 @@ If for whatever reason you want to skip TLS verification, there's a flag for it:
 Example:
 
 `apiban-client-nftables -yaml=true -verify=false`
+
+### COUNTERS
+
+**New Feature**: added 2026-05-08 (requested by @tsearle)
+
+apiban-client-nftables can now create the APIBAN nft set with counters enabled.
+
+Example:
+
+`apiban-client-nftables -counter=true`
+
+or in crontab:
+
+```
+# update apiban nftables
+PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
+*/4 * * * * /usr/local/bin/apiban/apiban-client-nftables -yaml=true -counter=true >/dev/null 2>&1
+```
 
 ## More Info
 
