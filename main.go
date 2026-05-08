@@ -32,10 +32,11 @@ import (
 )
 
 var (
-	configFileLocation string
-	logFile            string
-	skipVerify         bool
-	useYaml            bool
+	configFileLocation string = ""
+	logFile            string = "/var/log/apiban-nft-client.log"
+	skipVerify         bool   = true
+	useCounter         bool   = false
+	useYaml            bool   = false
 )
 
 // ApibanConfig is the structure for the JSON config file
@@ -52,10 +53,11 @@ type ApibanConfig struct {
 }
 
 func init() {
-	flag.StringVar(&configFileLocation, "config", "", "location of configuration file")
-	flag.StringVar(&logFile, "log", "/var/log/apiban-nft-client.log", "location of log file or - for stdout")
-	flag.BoolVar(&skipVerify, "verify", true, "set to false to skip verify of tls cert")
-	flag.BoolVar(&useYaml, "yaml", false, "use yaml - default is json")
+	flag.StringVar(&configFileLocation, "config", configFileLocation, "location of configuration file")
+	flag.StringVar(&logFile, "log", logFile, "location of log file or - for stdout")
+	flag.BoolVar(&skipVerify, "verify", skipVerify, "set to false to skip verify of tls cert")
+	flag.BoolVar(&useCounter, "counter", useCounter, "use counter - default is false (no counter)")
+	flag.BoolVar(&useYaml, "yaml", useYaml, "use yaml - default is json")
 
 	if !skipVerify {
 		http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
@@ -342,7 +344,12 @@ func addSet(cfg ApibanConfig) error {
 	}
 
 	log.Println("[.] creating set", cfg.SETNAME, "in", chainDetails.Table, chainDetails.Chain)
-	err = nftlib.NftAddSet(chainDetails, cfg.SETNAME)
+	if useCounter {
+		err = nftlib.NftAddSetCounter(chainDetails, cfg.SETNAME)
+	} else {
+		err = nftlib.NftAddSet(chainDetails, cfg.SETNAME)
+	}
+
 	if err != nil {
 		log.Println("[x] unable to create set:", err.Error())
 		return errors.New("unable to create set")

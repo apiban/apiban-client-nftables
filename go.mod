@@ -4,7 +4,7 @@ go 1.26.1
 
 require (
 	github.com/apiban/golib v1.0.1
-	github.com/apiban/nftlib v0.5.0
+	github.com/apiban/nftlib v0.6.0
 	github.com/goccy/go-yaml v1.19.2
 )
 
