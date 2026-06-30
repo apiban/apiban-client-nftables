@@ -41,15 +41,15 @@ var (
 
 // ApibanConfig is the structure for the JSON config file
 type ApibanConfig struct {
-	APIKEY     string `json:"apikey"`
-	LKID       string `json:"lkid"`
-	VERSION    string `json:"version"`
-	FLUSH      string `json:"flush"`
-	DATASET    string `json:"dataset"`
-	SETNAME    string `json:"setname"`
-	FLUSHAFTER int64  `json:"flushafter"`
-	UPTIME     int64  `json:"uptime"`
-	sourceFile string
+	Apikey     string `json:"apikey"`
+	Lkid       string `json:"lkid"`
+	Version    string `json:"version"`
+	Flush      string `json:"flush"`
+	Dataset    string `json:"dataset"`
+	Setname    string `json:"setname"`
+	FlushAfter int64  `json:"flushafter"`
+	Uptime     int64  `json:"uptime"`
+	SourceFile string
 }
 
 func init() {
@@ -96,9 +96,9 @@ func main() {
 	}
 
 	// Check if nft set exists
-	currentSet, err := nftlib.NftListSet(apiconfig.SETNAME)
+	currentSet, err := nftlib.NftListSet(apiconfig.Setname)
 	if err != nil {
-		log.Println("[x] Cannot verify nftables set:", apiconfig.SETNAME)
+		log.Println("[x] Cannot verify nftables set:", apiconfig.Setname)
 		log.Println("[x] error:", err)
 		log.Println("[.] trying to create set")
 		err := addSet(*apiconfig)
@@ -106,23 +106,23 @@ func main() {
 			os.Exit(2)
 		}
 
-		currentSet, err = nftlib.NftListSet(apiconfig.SETNAME)
+		currentSet, err = nftlib.NftListSet(apiconfig.Setname)
 		if err != nil {
 			log.Println("[x]", err.Error())
-			log.Println("[x] Still cannot verify nftables set:", apiconfig.SETNAME)
+			log.Println("[x] Still cannot verify nftables set:", apiconfig.Setname)
 			os.Exit(2)
 		}
 
 		log.Println("[+]", currentSet.Set, "verified")
 	}
 
-	log.Println("[.]", apiconfig.SETNAME, "exists. Currently has", len(currentSet.Elements), "elements.")
+	log.Println("[.]", apiconfig.Setname, "exists. Currently has", len(currentSet.Elements), "elements.")
 
-	// allow cli of FULL to reset LKID to 100
+	// allow cli of FULL to reset Lkid to 100
 	if len(nonflagargs) > 0 {
 		if nonflagargs[0] == "FULL" {
-			log.Print("[.] CLI of FULL received, resetting LKID")
-			apiconfig.LKID = "100"
+			log.Print("[.] CLI of FULL received, resetting Lkid")
+			apiconfig.Lkid = "100"
 		}
 	}
 
@@ -131,48 +131,48 @@ func main() {
 	if err != nil {
 		log.Print("[.] unable to check uptime")
 	} else {
-		if upsec < apiconfig.UPTIME {
-			log.Println("[.] uptime of", upsec, "is less than", apiconfig.UPTIME, " - resetting LKID")
-			apiconfig.LKID = "100"
+		if upsec < apiconfig.Uptime {
+			log.Println("[.] uptime of", upsec, "is less than", apiconfig.Uptime, " - resetting Lkid")
+			apiconfig.Lkid = "100"
 		}
 	}
 
 	// check if set elements need to be flushed (greater than 7 days)
-	flushtime, _ := strconv.ParseInt(apiconfig.FLUSH, 10, 64)
+	flushtime, _ := strconv.ParseInt(apiconfig.Flush, 10, 64)
 	flushdiff := now.Unix() - flushtime
-	if flushdiff >= apiconfig.FLUSHAFTER {
+	if flushdiff >= apiconfig.FlushAfter {
 		err := nftlib.NftFlushSet(currentSet)
 		if err != nil {
 			log.Print("[.] flushing nftables set failed. ", err.Error())
 			os.Exit(2)
 		}
 
-		log.Print("[.] set flushed. resetting LKID and FLUSH")
-		apiconfig.LKID = "100"
-		apiconfig.FLUSH = strconv.FormatInt(now.Unix(), 10)
+		log.Print("[.] set flushed. resetting Lkid and Flush")
+		apiconfig.Lkid = "100"
+		apiconfig.Flush = strconv.FormatInt(now.Unix(), 10)
 	}
 
 	// get banned ips from APIBAN and add to nftables
 	i := 0
 	for i < 24 {
-		log.Println("Checking banned list with ID:", apiconfig.LKID, " and settype:", apiconfig.DATASET)
+		log.Println("Checking banned list with ID:", apiconfig.Lkid, " and settype:", apiconfig.Dataset)
 
 		// Get list of banned ip's from APIBAN.org (up to 24 times)
-		res, err := golib.Banned(apiconfig.APIKEY, apiconfig.LKID, apiconfig.DATASET)
+		res, err := golib.Banned(apiconfig.Apikey, apiconfig.Lkid, apiconfig.Dataset)
 		if err != nil {
 			log.Fatalln("failed to get banned list:", err)
 			continue
 		}
 
-		if res.ID == apiconfig.LKID {
+		if res.ID == apiconfig.Lkid {
 			// nothing blocked since last check
 			log.Print("Great news... no new bans to add. Exiting...")
 			if err := apiconfig.Update(); err != nil {
 				log.Fatalln(err)
 			}
 
-			currentSet, _ = nftlib.NftListSet(apiconfig.SETNAME)
-			log.Println("[+]", apiconfig.SETNAME, "now has", len(currentSet.Elements), "elements.")
+			currentSet, _ = nftlib.NftListSet(apiconfig.Setname)
+			log.Println("[+]", apiconfig.Setname, "now has", len(currentSet.Elements), "elements.")
 			os.Exit(0)
 		}
 
@@ -181,7 +181,7 @@ func main() {
 			os.Exit(0)
 		}
 
-		// add the received IPs to ghe nftable set
+		// add the received IPs to the nftable set
 		for _, ip := range res.IPs {
 			err := nftlib.NftAddSetElement(currentSet, ip)
 			if err != nil {
@@ -190,20 +190,23 @@ func main() {
 				log.Println("+ added", ip, "to", currentSet.Set)
 			}
 
-			apiconfig.LKID = res.ID
+			apiconfig.Lkid = res.ID
 		}
 
 		i++
 	}
 
-	currentSet, err = nftlib.NftListSet(apiconfig.SETNAME)
+	currentSet, err = nftlib.NftListSet(apiconfig.Setname)
 	if err != nil {
-		log.Println("[x] Cannot verify nftables set:", apiconfig.SETNAME)
+		log.Println("[x] Cannot verify nftables set:", apiconfig.Setname)
 		log.Println("[x] error:", err)
 		os.Exit(2)
 	}
 
-	log.Println("[+]", apiconfig.SETNAME, "now has", len(currentSet.Elements), "elements.")
+	log.Println("[+]", apiconfig.Setname, "now has", len(currentSet.Elements), "elements.")
+	if err := apiconfig.Update(); err != nil {
+		log.Fatalln(err)
+	}
 }
 
 // LoadConfig attempts to load the APIBAN configuration file from various locations
@@ -269,48 +272,48 @@ func LoadConfig(now time.Time) (*ApibanConfig, error) {
 			}
 		}
 
-		cfg.sourceFile = loc
-		cfg.VERSION = "nft1.2"
-		if cfg.APIKEY == "" || cfg.APIKEY == "MY API KEY" || cfg.APIKEY == "MYAPIKEY" {
-			log.Println("[.] \"" + cfg.APIKEY + "\" is not a valid APIBAN key. Please go to apiban.org and get a valid API key.")
-			log.Fatalln("Invalid APIKEY. Exiting.")
+		cfg.SourceFile = loc
+		cfg.Version = "nft1.2"
+		if cfg.Apikey == "" || cfg.Apikey == "MY API KEY" || cfg.Apikey == "MYApikey" {
+			log.Println("[.] \"" + cfg.Apikey + "\" is not a valid APIBAN key. Please go to apiban.org and get a valid API key.")
+			log.Fatalln("Invalid Apikey. Exiting.")
 			runtime.Goexit()
 		}
 
-		if len(cfg.LKID) == 0 {
-			log.Print("[.] Resetting LKID")
-			cfg.LKID = "100"
+		if len(cfg.Lkid) == 0 {
+			log.Print("[.] Resetting Lkid")
+			cfg.Lkid = "100"
 		}
 
-		// if no FLUSH, reset it to 100
-		if len(cfg.FLUSH) == 0 {
-			log.Print("[.] Resetting FLUSH")
+		// if no Flush, reset it to 100
+		if len(cfg.Flush) == 0 {
+			log.Print("[.] Resetting Flush")
 			flushnow := now.Unix()
-			cfg.FLUSH = strconv.FormatInt(flushnow, 10)
+			cfg.Flush = strconv.FormatInt(flushnow, 10)
 		}
 
-		// if no FLUSHAFTER, use a week
-		if cfg.FLUSHAFTER < 1 {
-			log.Print("[.] Resetting FLUSHAFTER to 1 week")
-			cfg.FLUSHAFTER = 604800
+		// if no FlushAfter, use a week
+		if cfg.FlushAfter < 1 {
+			log.Print("[.] Resetting FlushAfter to 1 week")
+			cfg.FlushAfter = 604800
 		}
 
-		// if no UPTIME, use 5 min
-		if cfg.UPTIME < 1 {
-			log.Print("[.] No UPTIME. Use 600")
-			cfg.UPTIME = 600
+		// if no Uptime, use 5 min
+		if cfg.Uptime < 1 {
+			log.Print("[.] No Uptime. Use 600")
+			cfg.Uptime = 600
 		}
 
-		log.Println("[.] using", cfg.sourceFile, "for config")
+		log.Println("[.] using", cfg.SourceFile, "for config")
 		return cfg, nil
 	}
 
 	return nil, errors.New("failed to locate configuration file")
 }
 
-// Update rewrite the configuration file with and updated state (such as the LKID)
+// Update rewrite the configuration file with and updated state (such as the Lkid)
 func (cfg *ApibanConfig) Update() error {
-	f, err := os.Create(cfg.sourceFile)
+	f, err := os.Create(cfg.SourceFile)
 	if err != nil {
 		return fmt.Errorf("failed to open configuration file for writing: %w", err)
 	}
@@ -322,6 +325,7 @@ func (cfg *ApibanConfig) Update() error {
 	} else {
 		enc := json.NewEncoder(f)
 		enc.SetIndent("", "  ")
+		enc.Encode(cfg)
 	}
 
 	return nil
@@ -343,11 +347,11 @@ func addSet(cfg ApibanConfig) error {
 		return errors.New("error getting input chain details")
 	}
 
-	log.Println("[.] creating set", cfg.SETNAME, "in", chainDetails.Table, chainDetails.Chain)
+	log.Println("[.] creating set", cfg.Setname, "in", chainDetails.Table, chainDetails.Chain)
 	if useCounter {
-		err = nftlib.NftAddSetCounter(chainDetails, cfg.SETNAME)
+		err = nftlib.NftAddSetCounter(chainDetails, cfg.Setname)
 	} else {
-		err = nftlib.NftAddSet(chainDetails, cfg.SETNAME)
+		err = nftlib.NftAddSet(chainDetails, cfg.Setname)
 	}
 
 	if err != nil {
@@ -355,12 +359,12 @@ func addSet(cfg ApibanConfig) error {
 		return errors.New("unable to create set")
 	}
 
-	log.Println("[.] creating input rule", cfg.SETNAME, "in", chainDetails.Table, chainDetails.Chain)
-	err = nftlib.NftAddSetRuleInput(chainDetails, cfg.SETNAME)
+	log.Println("[.] creating input rule", cfg.Setname, "in", chainDetails.Table, chainDetails.Chain)
+	err = nftlib.NftAddSetRuleInput(chainDetails, cfg.Setname)
 	if err != nil {
 		log.Println("[*] unable to create input rule:", err.Error())
 		log.Println("[*] input rule failed. Set created though... continuing.")
-		log.Println("[*] *** PLEASE MANUALLY CREATE A RULE FOR THE", cfg.SETNAME, "SET")
+		log.Println("[*] *** PLEASE MANUALLY CREATE A RULE FOR THE", cfg.Setname, "SET")
 	}
 
 	log.Println("[-] finding output chains")
@@ -377,12 +381,12 @@ func addSet(cfg ApibanConfig) error {
 		return nil
 	}
 
-	log.Println("[.] creating output rule", cfg.SETNAME, "in", chainDetails.Table, chainDetails.Chain)
-	err = nftlib.NftAddSetRuleOutput(chainDetails, cfg.SETNAME)
+	log.Println("[.] creating output rule", cfg.Setname, "in", chainDetails.Table, chainDetails.Chain)
+	err = nftlib.NftAddSetRuleOutput(chainDetails, cfg.Setname)
 	if err != nil {
 		log.Println("[*] unable to create output rule:", err.Error())
 		log.Println("[*] output rule failed. Set created though... continuing.")
-		log.Println("[*] *** PLEASE MANUALLY CREATE A RULE FOR THE", cfg.SETNAME, "SET")
+		log.Println("[*] *** PLEASE MANUALLY CREATE A RULE FOR THE", cfg.Setname, "SET")
 	}
 
 	return nil
