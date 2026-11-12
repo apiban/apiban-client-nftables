@@ -1,11 +1,19 @@
 {
     "apikey": "MY API KEY",
     "lkid": "100",
-    "version": "nft1.2",
+    "version": "nft1.3",
     "flush": "100",
     "flushafter": 604800,
     "dataset": "all",
     "uptime": 600,
-    "setname": "APIBAN"
-  }
-  
+    "setname": "APIBAN",
+    "allowed":
+      [
+          {
+              "cidr":"1.1.1.1/32"
+          },
+          {
+              "cidr":"208.67.207.0/24"
+          }
+      ]
+}

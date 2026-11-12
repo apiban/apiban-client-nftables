@@ -49,7 +49,13 @@ type ApibanConfig struct {
 	Setname    string `json:"setname"`
 	FlushAfter int64  `json:"flushafter"`
 	Uptime     int64  `json:"uptime"`
+	Allowed    []IPNet
 	SourceFile string
+}
+
+type IPNet struct {
+	Cidr    string `json:"cidr,omitempty"`
+	Comment string `json:"comment,omitempty"`
 }
 
 func init() {
@@ -183,11 +189,24 @@ func main() {
 
 		// add the received IPs to the nftable set
 		for _, ip := range res.IPs {
-			err := nftlib.NftAddSetElement(currentSet, ip)
-			if err != nil {
-				log.Println("XX error adding", ip, ":", err.Error())
-			} else {
-				log.Println("+ added", ip, "to", currentSet.Set)
+			blocktheip := true
+			// check if ip is in allowed
+			if apiconfig.Allowed != nil {
+				for _, v := range apiconfig.Allowed {
+					if nftlib.ContainsIP(v.Cidr, ip) {
+						log.Println("** not blocking", ip, "--", v.Cidr, "is in allowed")
+						blocktheip = false
+					}
+				}
+			}
+
+			if blocktheip {
+				err := nftlib.NftAddSetElement(currentSet, ip)
+				if err != nil {
+					log.Println("XX error adding", ip, ":", err.Error())
+				} else {
+					log.Println("+ added", ip, "to", currentSet.Set)
+				}
 			}
 
 			apiconfig.Lkid = res.ID
