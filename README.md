@@ -24,6 +24,7 @@ This software, _if you can even call it that_, has limited testing, running on o
   - [Log](#log)
   - [TLS Verify](#tls-verify)
   - [Counters](#counters)
+  - [Allowed](#allowed)
 - [More Info](#more-info)
 - [License](#license)
 - [Contributions](#contributions)
@@ -213,6 +214,32 @@ or in crontab:
 # update apiban nftables
 PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
 */4 * * * * /usr/local/bin/apiban/apiban-client-nftables -yaml=true -counter=true >/dev/null 2>&1
+```
+
+### ALLOWED
+
+**New Feature**: added 2026-11-12
+
+apiban-client-nftables now supports marking addresses as allowed, ensuring that they are not blocked by the client. Addresses are listed in the config in CIDR notation. By default, the config lists the main apiban hosts and cloudflare (1.1.1.1) as an example:
+
+```json
+    "allowed":
+      [
+          {
+              "cidr":"1.1.1.1/32"
+          },
+          {
+              "cidr":"208.67.207.0/24"
+          }
+      ]
+```
+
+```yaml
+allowed:
+- cidr: 208.67.207.0/24
+  comment: default example
+- cidr: 1.1.1.1/32
+  comment: cloudflare dns
 ```
 
 ## More Info
